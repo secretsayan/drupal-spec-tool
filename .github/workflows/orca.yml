@@ -1,0 +1,108 @@
+---
+name: ORCA CI
+on:
+  push:
+    branches: [ master, develop, wip ]
+    paths-ignore:
+      - docs/**
+  pull_request:
+    branches: [ develop ]
+    paths-ignore:
+      - docs/**
+  schedule:
+    # Daily at 00:00:00 UTC.
+    # @see https://crontab.cronhub.io/
+    -   cron: "0 0 * * *"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      ORCA_SUT_NAME: acquia/drupal-spec-tool
+      ORCA_SUT_BRANCH: master
+      ORCA_VERSION: ^3
+      ORCA_PACKAGES_CONFIG: ${{ matrix.orca-packages-config }}
+      ORCA_TELEMETRY_ENABLE: "TRUE"
+      ORCA_JOB: ${{ matrix.orca-job }}
+      BEHAT: ${{ matrix.behat }}
+    strategy:
+      matrix:
+        # The standard ORCA jobs provide broad out-of-the-box coverage.
+        # @see https://github.com/acquia/orca/blob/main/docs/understanding-orca.md#continuous-integration
+        orca-job:
+          - STATIC_CODE_ANALYSIS
+          - INTEGRATED_TEST_ON_OLDEST_SUPPORTED
+          - INTEGRATED_TEST_ON_LATEST_LTS
+          - INTEGRATED_TEST_ON_PREVIOUS_MINOR
+          - INTEGRATED_UPGRADE_TEST_FROM_PREVIOUS_MINOR
+          - ISOLATED_TEST_ON_CURRENT
+          - INTEGRATED_TEST_ON_CURRENT
+          - INTEGRATED_UPGRADE_TEST_TO_NEXT_MINOR
+          - ISOLATED_TEST_ON_CURRENT_DEV
+          - INTEGRATED_TEST_ON_CURRENT_DEV
+          - STRICT_DEPRECATED_CODE_SCAN
+          - ISOLATED_TEST_ON_NEXT_MINOR
+          - INTEGRATED_TEST_ON_NEXT_MINOR
+          - ISOLATED_UPGRADE_TEST_TO_NEXT_MAJOR_BETA_OR_LATER
+          - ISOLATED_UPGRADE_TEST_TO_NEXT_MAJOR_DEV
+          - DEPRECATED_CODE_SCAN_W_CONTRIB
+          - INTEGRATED_TEST_ON_NEXT_MINOR_DEV
+          - ISOLATED_TEST_ON_NEXT_MINOR_DEV
+          - INTEGRATED_UPGRADE_TEST_TO_NEXT_MINOR_DEV
+          - LOOSE_DEPRECATED_CODE_SCAN
+
+          # Uncomment the following four lines to enable the corresponding tests once
+          # the next major version of Drupal core has an alpha release or earlier.
+          # Until then, it's wasteful to use CI jobs on them, even if they exit early.
+          # - ISOLATED_TEST_ON_NEXT_MAJOR_LATEST_MINOR_BETA_OR_LATER
+          # - INTEGRATED_TEST_ON_NEXT_MAJOR_LATEST_MINOR_BETA_OR_LATER
+          # - ISOLATED_TEST_ON_NEXT_MAJOR_LATEST_MINOR_DEV
+          # - INTEGRATED_TEST_ON_NEXT_MAJOR_LATEST_MINOR_DEV
+        php-version: [ "7.4" ]
+        include:
+          # Lightning/Spreadsheet/Behat integration test.
+          - orca-job: ""
+            orca-packages-config: ../drupal-spec-tool/config/packages.yml
+            behat: "TRUE"
+
+          # Lightning/Spreadsheet/Behat integration test on PHP 8.0.
+          - orca-job: ""
+            orca-packages-config: ../drupal-spec-tool/config/packages.yml
+            behat: "TRUE"
+            php-version: "8.0"
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 12.x
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: xdebug
+
+      - name: Before install
+        run: |
+          composer create-project --no-dev acquia/orca ../orca "$ORCA_VERSION"
+          ../orca/bin/ci/before_install.sh
+
+      - name: Install
+        run: ../orca/bin/ci/install.sh
+
+      - name: Before script
+        run: ../orca/bin/ci/before_script.sh
+
+      - name: Script
+        run: ../orca/bin/ci/script.sh
+
+      - name: After script
+        run: ../orca/bin/ci/after_script.sh
+
+      - name: After success
+        if: ${{ success() }}
+        run: ../orca/bin/ci/after_success.sh
+
+      - name: After failure
+        if: ${{ failure() }}
+        run: ../orca/bin/ci/after_failure.sh
