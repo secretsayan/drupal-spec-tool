@@ -53,7 +53,10 @@ jobs:
     - { env: ORCA_JOB=ISOLATED_TEST_ON_NEXT_MINOR, name: "Isolated test on next minor Drupal core version" }
     - { env: ORCA_JOB=INTEGRATED_TEST_ON_NEXT_MINOR, name: "Integrated test on next minor Drupal core version" }
     - { env: ORCA_JOB=ISOLATED_TEST_ON_NEXT_MINOR_DEV, name: "Isolated test on next minor dev Drupal core version" }
-    - { env: ORCA_JOB=INTEGRATED_TEST_ON_NEXT_MINOR_DEV, name: "Integrated test on next minor dev Drupal core version" }
+
+    # Temporarily disabled due to service disruption.
+    # - { env: ORCA_JOB=INTEGRATED_TEST_ON_NEXT_MINOR_DEV, name: "Integrated test on next minor dev Drupal core version" }
+
     # Uncomment the following four lines to enable the corresponding tests once
     # the next major version of Drupal core has an alpha release or earlier.
     # Until then it's wasteful to use CI jobs on them, even if they exit early.
